@@ -56,28 +56,26 @@ exports.modifySauce = (req, res, next) => {
         const url = req.protocol + '://' + req.get('host');
         req.body.sauce = JSON.parse(req.body.sauce);
       sauce = {
-    _id: req.params.id,  
-    userId: req.body.sauce.userId,
-    name: req.body.sauce.name,
-    manufacturer: req.body.sauce.manufacturer,
-    description: req.body.sauce.description,
-    mainPepper: req.body.sauce.mainPepper,
-    imageUrl: url + '/images/' + req.file.filename,
-    heat: req.body.sauce.heat,
-    
-   };
+            _id: req.params.id,  
+            userId: req.body.sauce.userId,
+            name: req.body.sauce.name,
+            manufacturer: req.body.sauce.manufacturer,
+            description: req.body.sauce.description,
+            mainPepper: req.body.sauce.mainPepper,
+            imageUrl: url + '/images/' + req.file.filename,
+            heat: req.body.sauce.heat,
+         };
 } else {
-  sauce = {  
-    _id: req.params.id,  
-    userId: req.body.userId,
-    name: req.body.name,
-    manufacturer: req.body.manufacturer,
-    description: req.body.description,
-    mainPepper: req.body.mainPepper,
-    //imageUrl:  req.body.imageUrl,
-    heat: req.body.heat,
-    
-  };
+      sauce = {  
+            _id: req.params.id,  
+            userId: req.body.userId,
+            name: req.body.name,
+            manufacturer: req.body.manufacturer,
+            description: req.body.description,
+            mainPepper: req.body.mainPepper,
+            //imageUrl:  req.body.imageUrl,
+            heat: req.body.heat,
+      };
 }
   Sauce.updateOne({_id: req.params.id}, sauce).then(
     () => {
@@ -131,33 +129,48 @@ exports.getAllSauce = (req, res, next) => {
   );
 };
 
-
 /////// Dislike & Like Function  Export///////
 
 
-
-exports.likeOneSauce = (req, res, next) => {
-   const sauceObjet = req.body.sauce;
-   Sauce.updateOne({ _id: req.params.id },{$set: {
-       likes: sauceObjet.likes,
-       dislikes: sauceObjet.dislikes,
-        usersDisliked: sauceObjet.usersDisliked,
-        usersLiked: sauceObjet.usersLiked },
-        _id: req.params.id
-    })
-   .then(() => res.status(200).json({ message: req.body.message}))
-    .catch(error => res.status(400).json({ error: req.body.message }));
-};
-
-
-///exports.likeOneSauce = (req, res, next) => {///
-  //Sauce.findOne({_id: req.params.id}).then(
-    //  (sauce) => { 
-  // let update = {};
- /// )}  
-  
-   /// Sauce.updateOne({ _id: req.params.id },update
-  //  })
- ///   .then(() => res.status(200).json({ message: req.body.message}))
-   // .catch(error => res.status(400).json({ error: req.body.message }));
-///};
+exports.likeOrDislikeSauce = (req, res, next) => {
+  Sauce.findOne({ _id: req.params.id }).then(
+    (sauce) => {
+      let updateObject = {}
+     
+      if(req.body.like==1 && sauce.usersLiked.indexOf(req.body.userId)<0) {
+        sauce.usersLiked.push(req.body.userId);
+        sauce.likes+=1;
+      } else if (req.body.like==-1 && sauce.usersDisliked.indexOf(req.body.userId)<0) {
+        sauce.usersDisliked.push(req.body.userId);
+        sauce.dislikes+=1;
+      } else {
+        sauce.usersLiked.forEach(element => {
+          if(element==req.body.userId) {
+            sauce.likes-=1;
+            sauce.usersLiked.splice(sauce.usersLiked.indexOf(req.body.userId),1);
+          }
+        });
+        sauce.usersDisliked.forEach(element => {
+          if(element==req.body.userId) {
+            sauce.dislikes-=1;
+            sauce.usersDisliked.splice(sauce.usersDisliked.indexOf(req.body.userId),1);
+          }
+        });
+      }
+      
+      Sauce.updateOne({ _id: req.params.id }, updateObject).then(
+        () => {
+          res.status(201).json({
+            message: 'Sauce rated!'
+          });
+        }
+      ).catch(
+        (error) => {
+          res.status(400).json({
+            error: error
+          });
+        }
+      );
+    }
+  )
+}
